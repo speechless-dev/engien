@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Pixel Renderer</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pixelCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const canvasWidth = 1920;
+        const canvasHeight = 1080;
+
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        const backgroundColor = [6, 25, 35, 255];  // 0
+        const foregroundColor = [229, 196, 158, 255];  // 1
+        const totalFrames = 5000;  
+        const frameDuration = 1000 / 60;  //FPS
+
+        let frameIndex = 0;
+        let frames = [];  
+        let imageData;  
+        let pixels;  
+        let lastRenderTime = 0; 
+
+        window.onload = function () {
+            preloadFrames().then(() => {
+                imageData = ctx.createImageData(canvasWidth, canvasHeight);
+                pixels = imageData.data;
+                requestAnimationFrame(renderNextFrame);
+            });
+        };
+
+        async function preloadFrames() {
+            for (let i = 0; i < totalFrames; i++) {
+                const filename = `frames/frame_${i}.bin`;
+                const response = await fetch(filename);
+                const data = await response.arrayBuffer(); 
+                frames.push(new Uint8Array(data));  
+            }
+            console.log("All frames preloaded");
+        }
+
+      
+        function renderNextFrame(timestamp) {
+            const timeSinceLastRender = timestamp - lastRenderTime;
+
+          
+            if (timeSinceLastRender >= frameDuration) {
+                lastRenderTime = timestamp;
+
+                const binaryData = frames[frameIndex]; 
+                updateFrameData(binaryData);  
+                ctx.putImageData(imageData, 0, 0);  
+
+                frameIndex = (frameIndex + 1) % totalFrames; 
+            }
+
+            requestAnimationFrame(renderNextFrame);  
+        }
+
+       
+        function updateFrameData(binaryData) {
+            let byte, bit, pixelIndex, bitValue;
+            let index = 0;
+
+            // Iterate over each byte in the binaryData
+            for (let i = 0; i < binaryData.length; i++) {
+                byte = binaryData[i];
+                // Each byte contains 8 pixels (bits)
+                for (bit = 0; bit < 8; bit++) {
+                    bitValue = (byte >> bit) & 1;
+                    pixelIndex = index * 4;  
+
+                    // Set RGBA values directly
+                    if (bitValue === 1) {
+                        pixels[pixelIndex] = foregroundColor[0];
+                        pixels[pixelIndex + 1] = foregroundColor[1];
+                        pixels[pixelIndex + 2] = foregroundColor[2];
+                        pixels[pixelIndex + 3] = foregroundColor[3];
+                    } else {
+                        pixels[pixelIndex] = backgroundColor[0];
+                        pixels[pixelIndex + 1] = backgroundColor[1];
+                        pixels[pixelIndex + 2] = backgroundColor[2];
+                        pixels[pixelIndex + 3] = backgroundColor[3];
+                    }
+                    index++;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+
+    </script>
+</body>
+</html>
